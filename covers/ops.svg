@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 600">
+  <defs>
+    <linearGradient id="bg_ops" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#111214"/>
+      <stop offset="100%" style="stop-color:#1b1d21"/>
+    </linearGradient>
+  </defs>
+  <rect width="1500" height="600" fill="url(#bg_ops)"/>
+  <circle cx="750" cy="270" r="140" fill="#f58f70" opacity="0.05"/>
+  <circle cx="750" cy="270" r="90" fill="#f58f70" opacity="0.04"/>
+  <text x="750" y="300" text-anchor="middle" dominant-baseline="middle"
+        font-size="130"
+        font-family="Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, sans-serif">⚙️</text>
+  <text x="750" y="410" text-anchor="middle"
+        font-family="'Noto Serif', Georgia, serif"
+        font-size="16" letter-spacing="8" fill="#f58f70" opacity="0.65">OPS & ADMIN</text>
+</svg>
