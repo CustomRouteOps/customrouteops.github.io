@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feed</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      background: #111;
+      color: #ccc;
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 13px;
+      height: 100%;
+      overflow-y: auto;
+    }
+    .header {
+      padding: 12px 16px 8px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: #111;
+      z-index: 10;
+    }
+    .header-title {
+      color: #f58f70;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .header-count {
+      color: #444;
+      font-size: 11px;
+    }
+    .feed-list { list-style: none; }
+    .feed-item {
+      padding: 10px 16px;
+      border-bottom: 1px solid #1a1a1a;
+      transition: background 0.1s;
+    }
+    .feed-item:hover { background: #161616; }
+    .item-title a {
+      color: #ddd;
+      text-decoration: none;
+      line-height: 1.4;
+      display: block;
+    }
+    .item-title a:hover { color: #f58f70; }
+    .item-meta {
+      margin-top: 3px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .item-source {
+      color: #f58f70;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .item-date { color: #444; font-size: 10px; }
+    .loading {
+      padding: 24px 16px;
+      color: #444;
+      text-align: center;
+    }
+    .error {
+      padding: 12px 16px;
+      color: #884444;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-title" id="cat-title">Feed</span>
+  <span class="header-count" id="item-count"></span>
+</div>
+<div class="loading" id="loading">Loading...</div>
+<ul class="feed-list" id="feed-list"></ul>
+
+<script>
+const CATEGORIES = {
+  logistics: {
+    label: "Logistics",
+    feeds: [
+      { name: "FreightWaves",     url: "https://www.freightwaves.com/feed" },
+      { name: "Supply Chain Dive",url: "https://www.supplychaindive.com/feeds/news/" },
+      { name: "DC Velocity",      url: "https://www.dcvelocity.com/rss/articles.xml" },
+      { name: "Transport Topics", url: "https://www.ttnews.com/rss.xml" },
+      { name: "Last Mile Today",  url: "https://lastmilenews.net/feed/" },
+    ]
+  },
+  ai: {
+    label: "AI",
+    feeds: [
+      { name: "VentureBeat AI",   url: "https://venturebeat.com/category/ai/feed/" },
+      { name: "The Decoder",      url: "https://the-decoder.com/feed/" },
+      { name: "MIT Tech Review",  url: "https://www.technologyreview.com/feed/" },
+      { name: "Ars Technica",     url: "https://feeds.arstechnica.com/arstechnica/technology-lab" },
+      { name: "Anthropic",        url: "https://www.anthropic.com/rss.xml" },
+    ]
+  },
+  notion: {
+    label: "Notion & Tools",
+    feeds: [
+      { name: "Notion Blog",      url: "https://www.notion.so/blog/rss.xml" },
+      { name: "Product Hunt",     url: "https://www.producthunt.com/feed" },
+      { name: "Hacker News",      url: "https://news.ycombinator.com/rss" },
+      { name: "Zapier Blog",      url: "https://zapier.com/blog/feed/" },
+    ]
+  }
+};
+
+function getParam(key) {
+  return new URLSearchParams(window.location.search).get(key);
+}
+
+function timeAgo(dateStr) {
+  const d = new Date(dateStr);
+  if (isNaN(d)) return "";
+  const diff = Math.floor((Date.now() - d) / 1000);
+  if (diff < 3600)  return Math.floor(diff / 60) + "m ago";
+  if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+  return Math.floor(diff / 86400) + "d ago";
+}
+
+async function fetchFeed(feed) {
+  const api = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}&count=10`;
+  try {
+    const r = await fetch(api);
+    const d = await r.json();
+    if (d.status !== "ok") return [];
+    return d.items.map(item => ({
+      title:   item.title,
+      link:    item.link,
+      date:    item.pubDate,
+      source:  feed.name,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function init() {
+  const cat = getParam("category") || "logistics";
+  const config = CATEGORIES[cat] || CATEGORIES.logistics;
+
+  document.getElementById("cat-title").textContent = config.label;
+  document.title = config.label + " Feed";
+
+  const results = await Promise.all(config.feeds.map(fetchFeed));
+  const all = results.flat()
+    .filter(i => i.title && i.link)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 25);
+
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("item-count").textContent = all.length + " items";
+
+  const list = document.getElementById("feed-list");
+  for (const item of all) {
+    const li = document.createElement("li");
+    li.className = "feed-item";
+    li.innerHTML = `
+      <div class="item-title"><a href="${item.link}" target="_blank" rel="noopener">${item.title}</a></div>
+      <div class="item-meta">
+        <span class="item-source">${item.source}</span>
+        <span class="item-date">${timeAgo(item.date)}</span>
+      </div>`;
+    list.appendChild(li);
+  }
+
+  if (all.length === 0) {
+    list.innerHTML = '<li class="error">No items loaded — feeds may be temporarily unavailable.</li>';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
